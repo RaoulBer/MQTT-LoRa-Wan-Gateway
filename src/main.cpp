@@ -21,6 +21,8 @@
 const char* ssid = "scwl";
 const char* password = "*seitcomAccess2021!";
 const char* mqtt_server = "192.168.100.130";
+const char* mqttUser = "admin";
+const char* mqttPassword = "123";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -30,7 +32,7 @@ void reconnect() {
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
     // Attempt to connect
-    if (client.connect("ESP8266Client")) {
+    if (client.connect("ESP32Client", mqttUser, mqttPassword)) {
       Serial.println("connected");
       // Subscribe
       client.subscribe("esp32/output");
@@ -46,6 +48,7 @@ void reconnect() {
 
 void setup() {
   Serial.begin(9600);
+ /*
   while (!Serial);
 
   //Initialize LoRa WAN Receiver
@@ -56,7 +59,7 @@ void setup() {
     Serial.println("Starting LoRa failed!");
     while (1);
   }
-  
+  */
   // Connect to Wi-Fi
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
@@ -72,6 +75,10 @@ void setup() {
 }
 
 void loop() {
+  if (!client.connected()) {
+    reconnect();
+  }
+  client.loop();
   // try to parse packet
   int packetSize = LoRa.parsePacket();
   if (packetSize) {
@@ -88,6 +95,8 @@ void loop() {
     Serial.println(LoRa.packetRssi());
     client.publish("Abstand", "Was is man");
   }
+
+
   client.publish("Abstand", "Was is man");
   delay(5000);
 }

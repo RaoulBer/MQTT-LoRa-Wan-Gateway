@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "..\\Arduino-Uno-LoRa-Wan-Sender"
+		},
+		{
+			"path": "..\\Telegram-LoRa-Wan"
+		},
+		{
+			"path": "."
+		},
+		{
+			"path": "..\\Esp32-LoRa-Wan-Receiver"
+		}
+	],
+	"settings": {}
+}

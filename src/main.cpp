@@ -29,8 +29,8 @@ char* password = "*seitcomAccess2021!";
 
 // LORA WAN MODULE
 #define ss 5
-#define rst 14
-#define dio0 2
+#define rst 1
+#define dio0 3
 
 // Credentials for MQTT Server
 char* mqtt_server = "192.168.100.114";
@@ -290,7 +290,6 @@ String processor(const String& var){
 void setup() {
   //Initialize Serial connection
   Serial.begin(115200);
-  /*
   while (!Serial);
   //Initialize LoRa WAN Receiver
   Serial.println("LoRa Receiver");
@@ -300,7 +299,6 @@ void setup() {
     Serial.println("Starting LoRa failed!");
     while (1);
   }
-  */
 
   #ifdef ETHERNET
   WiFi.onEvent(WiFiEvent);
@@ -350,6 +348,4 @@ void loop() {
     mqttClient.publish("Abstand", "Was is man");
   }
   mqttClient.publish("Andere", "Funktioniert es auch mit http server?");
-
-  
 }

@@ -72,7 +72,7 @@ void initSPIFFS() {
 String readFile(fs::FS &fs, const char * path){
   Serial.printf("Reading file: %s\r\n" , path);
 
-  File file = fs.open(path);
+  File file = fs.open(path, "r");
   if(!file || file.isDirectory()){
     Serial.println("- failed to open file for reading");
     return String();
@@ -83,6 +83,7 @@ String readFile(fs::FS &fs, const char * path){
     fileContent = file.readStringUntil('\n');
     break;     
   }
+  file.close();
   return fileContent;
 }
 
@@ -90,7 +91,7 @@ String readFile(fs::FS &fs, const char * path){
 void writeFile(fs::FS &fs, const char * path, const char * message){
   Serial.printf("Writing file: %s\r\n", path);
 
-  File file = fs.open(path, "FILE_WRITE");
+  File file = fs.open(path, "w");
   if(!file){
     Serial.println("- failed to open file for writing");
     return;
@@ -100,6 +101,7 @@ void writeFile(fs::FS &fs, const char * path, const char * message){
   } else {
     Serial.println("- write failed");
   }
+  file.close();
 }
 
 // File paths to save input values permanently
@@ -111,18 +113,18 @@ const char* wifipwdPath ="/wifipwd.txt";
 
 const char* mqttloginPath = "/mqttlogin.txt";
 const char* mqttipPath = "/mqttip.txt";
-const char* mqttpasswordPath = "/gateway.txt";
+const char* mqttpasswordPath = "/mqttpwdpath.txt";
 
 //Variables to save values from HTML form
-String specialphrase = readFile(SPIFFS, specialphrasePath);
+String specialphrase;
 
-String enableWifi = readFile(SPIFFS, enablewifiPath);
-String wifissid = readFile(SPIFFS, wifissidPath);
-String wifipwd = readFile(SPIFFS, wifipwdPath);
+String enableWifi;
+String wifissid;
+String wifipwd ;
 
-String mqttip = readFile(SPIFFS, mqttipPath);
-String mqttlogin = readFile(SPIFFS, mqttloginPath);
-String mqttpwd = readFile(SPIFFS, mqttpasswordPath);
+String mqttip;
+String mqttlogin;
+String mqttpwd;
 
 #ifdef ETHERNET
 static bool eth_connected = false;
@@ -186,7 +188,6 @@ String processor(const String& var){
   else if (var == "mqttpassword"){
     return readFile(SPIFFS, mqttpasswordPath);
   }
-
   return String();
 }
 
@@ -206,23 +207,32 @@ void setup() {
 
   //Initialize flash filesystem emulation
   initSPIFFS();
+  delay(1);
 
- 
+  //Variables to save values from HTML form
+  specialphrase = readFile(SPIFFS, specialphrasePath);
+
+  enableWifi = readFile(SPIFFS, enablewifiPath);
+  wifissid = readFile(SPIFFS, wifissidPath);
+  wifipwd = readFile(SPIFFS, wifipwdPath);
+
+  mqttip = readFile(SPIFFS, mqttipPath);
+  mqttlogin = readFile(SPIFFS, mqttloginPath);
+  mqttpwd = readFile(SPIFFS, mqttpasswordPath);
+
   WiFi.onEvent(WiFiEvent);
   ETH.begin();
 
   
   // Connect to Wi-Fi
-  if (readFile(SPIFFS, enablewifiPath) == "on")
+  if (strcmp(enableWifi.c_str(), String("on").c_str()) == 0){
     WiFi.mode(WIFI_STA);
-    const char* ssid = readFile(SPIFFS, wifissidPath).c_str();
-    const char* password = readFile(SPIFFS, wifipwdPath).c_str();
-    WiFi.begin(ssid, password);
+    WiFi.begin(wifissid.c_str(), wifipwd.c_str());
     for(int i = 0; i < 30; i++ ) {
       delay(1000);
       Serial.println("Connecting to WiFi..");
     }
-
+  }
   // Print ESP Local IP Address
   Serial.println(WiFi.localIP());
   Serial.println(ETH.localIP());
@@ -246,7 +256,7 @@ void setup() {
       // HTTP POST Special Phase
       if (p->name() == "specialphrase") {
         specialphrase = p->value().c_str();
-        Serial.print("SSID set to: ");
+        Serial.print("Lora Wan special phrase: ");
         Serial.println(specialphrase);
         // Write file to save value
         if(specialphrase.c_str() != ""){
@@ -256,17 +266,15 @@ void setup() {
       // HTTP POST pass value
       if (p->name() == "enablewifi") {
         enableWifi = p->value().c_str();
-        Serial.print("Password set to: ");
+        Serial.print("Wifi status: ");
         Serial.println(enableWifi);
         // Write file to save value
-        if(enableWifi.c_str() !=""){
-          writeFile(SPIFFS, enablewifiPath, enableWifi.c_str());
-        }
+        writeFile(SPIFFS, enablewifiPath, enableWifi.c_str());
       }
       // HTTP POST ip value
       if (p->name() == "wifissid") {
         wifissid = p->value().c_str();
-        Serial.print("IP Address set to: ");
+        Serial.print("Wifi SSID set to: ");
         Serial.println(wifissid);
         // Write file to save value
         if(wifissid.c_str() != ""){
@@ -276,7 +284,7 @@ void setup() {
      // HTTP POST ip value
       if (p->name() == "wifipassword") {
         wifipwd = p->value().c_str();
-        Serial.print("IP Address set to: ");
+        Serial.print("Wifi password set to: ");
         Serial.println(wifipwd);
         // Write file to save value
         if(wifipwd.c_str() != ""){
@@ -286,7 +294,7 @@ void setup() {
       // HTTP POST ip value
       if (p->name() == "mqttipaddress") {
         mqttip = p->value().c_str();
-        Serial.print("IP Address set to: ");
+        Serial.print("MQTT IP Address set to: ");
         Serial.println(mqttip);
         // Write file to save value
         if(mqttip.c_str() != ""){
@@ -296,7 +304,7 @@ void setup() {
       // HTTP POST ip value
       if (p->name() == "mqttlogin") {
         mqttlogin = p->value().c_str();
-        Serial.print("IP Address set to: ");
+        Serial.print("MQTT Login set to: ");
         Serial.println(mqttlogin);
         // Write file to save value
         if(mqttlogin.c_str() != ""){
@@ -306,7 +314,7 @@ void setup() {
       // HTTP POST ip value
       if (p->name() == "mqttpassword") {
         mqttpwd= p->value().c_str();
-        Serial.print("IP Address set to: ");
+        Serial.print("MQTT Password set to: ");
         Serial.println(mqttpwd);
         // Write file to save value
         if(mqttpwd.c_str() != ""){
@@ -322,9 +330,12 @@ void setup() {
     }
   }
   });
+  delay(1);
 }
 
+
 void loop() {
+  
   if (!mqttClient.connected()) {
     reconnect();
   }

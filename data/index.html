@@ -30,7 +30,8 @@
       <form action="/" method="POST" accept-charset=utf-8>
         <div class="form-group1">
           <label class="switch">Enable Wifi: </label>
-          <input type="checkbox" name="enablewifi" placeholder="">
+          <input type="hidden" name="enablewifi" value="off">
+          <input type="checkbox" name="enablewifi">
           <span class="slider round"></span>
         </div>
         <div class="form-group">
@@ -68,9 +69,15 @@
     </div>    
   </div>
     <form action="/" method="POST">
-      <p><button type="submit" id="rebootbutton" class="button" name="reboot">Reboot</button></p>
+      <div class="form-group2">
+        <button type="submit" id="rebootbutton" class="button" name="reboot">Reboot</button>
+      </div>
     </form>    
   </div>
 </body>
 </html>
+
+<script>
+
+</script>
 

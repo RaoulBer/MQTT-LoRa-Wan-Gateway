@@ -15,13 +15,6 @@
 #include <PubSubClient.h>
 #include <AsyncTCP.h>
 
-//Imports for permanently saving data to device
-#include <EEPROM.h>
-
-//EEPROM CONFIGURATION
-// define the number of bytes you want to access
-#define EEPROM_SIZE 1
-
 // LORA WAN MODULE
 #define ss 5
 #define rst 1
@@ -228,9 +221,11 @@ void setup() {
   if (strcmp(enableWifi.c_str(), String("on").c_str()) == 0){
     WiFi.mode(WIFI_STA);
     WiFi.begin(wifissid.c_str(), wifipwd.c_str());
-    for(int i = 0; i < 30; i++ ) {
-      delay(1000);
+    int n = 0;
+    while ((WiFi.status() != WL_CONNECTED) && (n <= 10)){
       Serial.println("Connecting to WiFi..");
+      delay(1000);
+      n++;
     }
   }
   // Print ESP Local IP Address

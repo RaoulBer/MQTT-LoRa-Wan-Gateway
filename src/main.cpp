@@ -15,6 +15,9 @@
 #include <PubSubClient.h>
 #include <AsyncTCP.h>
 
+//String to int conversion 
+#include <sstream>
+
 // LORA WAN MODULE
 #define ss 5
 #define rst 1
@@ -98,7 +101,7 @@ void writeFile(fs::FS &fs, const char * path, const char * message){
 }
 
 // File paths to save input values permanently
-const char* specialphrasePath = "/specialphrase.txt";
+const char* syncwordPath = "/syncword.txt";
 
 const char* enablewifiPath = "/enablewifi.txt";
 const char* wifissidPath = "/wifissid.txt";
@@ -109,7 +112,7 @@ const char* mqttipPath = "/mqttip.txt";
 const char* mqttpasswordPath = "/mqttpwdpath.txt";
 
 //Variables to save values from HTML form
-String specialphrase;
+String syncword;
 
 String enableWifi;
 String wifissid;
@@ -164,7 +167,7 @@ void WiFiEvent(WiFiEvent_t event)
 String processor(const String& var){
   //Serial.println(var);
   if(var == "specialphrase"){
-    return readFile(SPIFFS, specialphrasePath);
+    return readFile(SPIFFS, syncwordPath);
   }
   else if(var == "enablewifi"){
     return readFile(SPIFFS, enablewifiPath);
@@ -191,19 +194,18 @@ void setup() {
   //Initialize LoRa WAN Receiver
   Serial.println("LoRa Receiver");
   LoRa.setPins(ss, rst, dio0);
-
-  /*if (!LoRa.begin(866E6)) {
-    Serial.println("Starting LoRa failed!");
-    while (1);
+  std::istringstream is(syncword.c_str());
+  int syncInt;
+  if (is >> syncInt){
+    LoRa.setSyncWord(syncInt);
   }
-  */
-
+  
   //Initialize flash filesystem emulation
   initSPIFFS();
   delay(1);
 
   //Variables to save values from HTML form
-  specialphrase = readFile(SPIFFS, specialphrasePath);
+  syncword = readFile(SPIFFS, syncwordPath);
 
   enableWifi = readFile(SPIFFS, enablewifiPath);
   wifissid = readFile(SPIFFS, wifissidPath);
@@ -215,6 +217,11 @@ void setup() {
 
   WiFi.onEvent(WiFiEvent);
   ETH.begin();
+
+  if (!LoRa.begin(866E6)) {
+    Serial.println("Starting LoRa failed!");
+    while (1);
+  }
 
   
   // Connect to Wi-Fi
@@ -250,12 +257,12 @@ void setup() {
     if(p->isPost()){
       // HTTP POST Special Phase
       if (p->name() == "specialphrase") {
-        specialphrase = p->value().c_str();
+        syncword = p->value().c_str();
         Serial.print("Lora Wan special phrase: ");
-        Serial.println(specialphrase);
+        Serial.println(syncword);
         // Write file to save value
-        if(specialphrase.c_str() != ""){
-          writeFile(SPIFFS, specialphrasePath, specialphrase.c_str());  
+        if(syncword.c_str() != ""){
+          writeFile(SPIFFS, syncwordPath, syncword.c_str());  
         }
       }
       // HTTP POST pass value

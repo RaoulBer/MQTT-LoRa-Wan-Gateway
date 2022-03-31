@@ -18,6 +18,9 @@
 //String to int conversion 
 #include <sstream>
 
+//String to json loader
+#include <ArduinoJson.h>
+
 // LORA WAN MODULE
 #define ss 5
 #define rst 1
@@ -122,6 +125,9 @@ String mqttip;
 String mqttlogin;
 String mqttpwd;
 
+//Initializing Json Document
+StaticJsonDocument<1024> doc;
+
 #ifdef ETHERNET
 static bool eth_connected = false;
 
@@ -197,6 +203,7 @@ void setup() {
   std::istringstream is(syncword.c_str());
   int syncInt;
   if (is >> syncInt){
+    Serial.println("Setting sync word");
     LoRa.setSyncWord(syncInt);
   }
   
@@ -348,14 +355,22 @@ void loop() {
   if (packetSize) {
     // received a packet
     Serial.print("Received packet '");
-    // read packet
+    // read packet into string of json format
+    char message[] = "";
+    int i = 0;
     while (LoRa.available()) {
-      Serial.print((char)LoRa.read());
+      message[i] = ((char)LoRa.read());
+      i++;
     }
+
+    deserializeJson(doc, message);
+    JsonObject documentRoot = doc.as<JsonObject>();
+    for (JsonPair keyValue : documentRoot){
+      mqttClient.publish(keyValue.key().c_str(), keyValue.value());
+    }
+
     // print RSSI of packet
     Serial.print("' with RSSI ");
     Serial.println(LoRa.packetRssi());
-    mqttClient.publish("Abstand", "Was is man");
   }
-  mqttClient.publish("Andere", "Funktioniert es auch mit http server?");
 }

@@ -23,8 +23,8 @@
 
 // LORA WAN MODULE
 #define ss 5
-#define rst 1
-#define dio0 3
+#define rst 14
+#define dio0 2
 
 // Credentials for MQTT Server
 char* mqtt_server = "192.168.100.114";
@@ -203,7 +203,8 @@ void setup() {
   std::istringstream is(syncword.c_str());
   int syncInt;
   if (is >> syncInt){
-    Serial.println("Setting sync word");
+    Serial.print("Setting sync word: ");
+    Serial.println(syncInt);
     LoRa.setSyncWord(syncInt);
   }
   
@@ -348,6 +349,7 @@ void loop() {
   if (!mqttClient.connected()) {
     reconnect();
   }
+  
   mqttClient.loop();
   // try to parse packet
   int packetSize = LoRa.parsePacket();
@@ -358,16 +360,17 @@ void loop() {
     // read packet into string of json format
     char message[] = "";
     int i = 0;
+    char a;
     while (LoRa.available()) {
-      message[i] = ((char)LoRa.read());
+      a = (char)LoRa.read();
+      message[i] = a;
       i++;
     }
-
-    deserializeJson(doc, message);
-    JsonObject documentRoot = doc.as<JsonObject>();
-    for (JsonPair keyValue : documentRoot){
-      mqttClient.publish(keyValue.key().c_str(), keyValue.value());
-    }
+    //deserializeJson(doc, message);
+    //JsonObject documentRoot = doc.as<JsonObject>();
+    //for (JsonPair keyValue : documentRoot){
+    mqttClient.publish("Topic", message);
+    //}
 
     // print RSSI of packet
     Serial.print("' with RSSI ");

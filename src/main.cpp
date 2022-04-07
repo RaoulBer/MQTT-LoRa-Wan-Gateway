@@ -26,11 +26,6 @@
 #define rst 14
 #define dio0 2
 
-// Credentials for MQTT Server
-char* mqtt_server = "192.168.100.114";
-char* mqttUser = "admin";
-char* mqttPassword = "123";
-
 // VARIABLES OF THE HTTP WEB SERVER
 AsyncWebServer server(80);
 
@@ -40,24 +35,20 @@ WiFiClient wifiClient;
 // VARIABLES OF THE MQTT wifiClient
 PubSubClient mqttClient(wifiClient);
 
-void reconnect() {
-  // Loop until we're reconnected
-  while (!mqttClient.connected()) {
-    Serial.print("Attempting MQTT connection...");
-    // Attempt to connect
-    if (mqttClient.connect("ESP32wifiClient", mqttUser, mqttPassword)) {
-      Serial.println("connected");
-      // Subscribe
-      mqttClient.subscribe("esp32/output");
-    } else {
-      Serial.print("failed, rc=");
-      Serial.print(mqttClient.state());
-      Serial.println(" try again in 5 seconds");
-      // Wait 5 seconds before retrying
-      delay(5000);
-    }
-  }
+std::vector<std::string> splitString(std::string s, std::string delimiter) {
+	size_t pos = 0;
+	std::string token;
+	std::vector<std::string> returnvector;
+
+	while ((pos = s.find(delimiter)) != std::string::npos) {
+		token = s.substr(0, pos);
+		returnvector.push_back(token);
+		s.erase(0, pos + delimiter.length());
+	}
+	returnvector.push_back(s);
+	return returnvector;
 }
+
 
 // Initialize SPIFFS
 void initSPIFFS() {
@@ -125,8 +116,25 @@ String mqttip;
 String mqttlogin;
 String mqttpwd;
 
-//Initializing Json Document
-StaticJsonDocument<1024> doc;
+void reconnect() {
+  // Loop until we're reconnected
+  while (!mqttClient.connected()) {
+    Serial.print("Attempting MQTT connection...");
+    // Attempt to connect
+    if (mqttClient.connect("ESP32wifiClient", mqttlogin.c_str(), mqttpwd.c_str())) {
+      Serial.println("connected");
+      // Subscribe
+      mqttClient.subscribe("esp32/output");
+    } else {
+      Serial.print("failed, rc=");
+      Serial.print(mqttClient.state());
+      Serial.println(" try again in 5 seconds");
+      // Wait 5 seconds before retrying
+      delay(5000);
+    }
+  }
+}
+
 
 #ifdef ETHERNET
 static bool eth_connected = false;
@@ -246,7 +254,7 @@ void setup() {
   // Print ESP Local IP Address
   Serial.println(WiFi.localIP());
   Serial.println(ETH.localIP());
-  mqttClient.setServer(mqtt_server, 1883);
+  mqttClient.setServer(mqttip.c_str(), 1883);
   server.begin();
   // Route for root / web page
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
@@ -366,12 +374,12 @@ void loop() {
       message[i] = a;
       i++;
     }
-    //deserializeJson(doc, message);
-    //JsonObject documentRoot = doc.as<JsonObject>();
-    //for (JsonPair keyValue : documentRoot){
-    mqttClient.publish("Topic", message);
-    //}
-
+    std::vector<std::string> splitted = splitString(message, ",");
+	  std::vector<std::string> subsplitted;
+    for (auto it = std::begin(splitted); it != std::end(splitted); it++) {
+		  subsplitted = splitString(*it, ":");
+		  mqttClient.publish(subsplitted[0].c_str(), subsplitted[1].c_str());
+  	}
     // print RSSI of packet
     Serial.print("' with RSSI ");
     Serial.println(LoRa.packetRssi());
